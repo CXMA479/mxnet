@@ -3,6 +3,23 @@ varying with training iterations. If shapes vary, executors will rebind,
 using shared arrays from the initial module binded with maximum shape.
 """
 
+"""
+this file is derived from one of the official examples, additional features:
+1. {acc_backward},  {acc_update}
+    for larger batch_size since in many cases where there is a need of this file the batch dim is always is ONE
+2. {save_checkpoint}
+    if shape has veried, barely using self._curr_module.save_checkpoint could book you a nightmare in some day, use this!
+
+TODO:
+1. interface for load like *mx.mod.Module.load*
+
+
+Chen Y. Liang
+"""
+
+
+
+
 import logging
 
 from mxnet import context as ctx
