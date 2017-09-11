@@ -219,10 +219,10 @@ class MutableModule(BaseModule):
 
     def __acc_grad(self,mod,grad):
         if grad == None:
-            return [[grad.copyto(grad.context) for grad in grads] for grads in mod._exec_group.grad_arrays]
+            return [[grad.copyto(grad.context) if grad is not None else None for grad in grads] for grads in mod._exec_group.grad_arrays]
         else:
-            return [[grad1.copyto(grad1.context) + grad0 for grad1,grad0 in zip(grads1,grads0)]\
-			 for grads1,grads0 in zip(mod._exec_group.grad_arrays,grad)]
+            return [[grad1.copyto(grad1.context) + grad0 if grad1 is not None else None  for grad1,grad0 in zip(grads1,grads0)]\
+                        for grads1,grads0 in zip(mod._exec_group.grad_arrays,grad)]
 
     def acc_backward(self, out_grads=None):
         assert self.binded and self.params_initialized
@@ -235,7 +235,7 @@ class MutableModule(BaseModule):
     def acc_update(self,normsize=1):
         assert self.binded and self.params_initialized and self.optimizer_initialized
         self._curr_module._exec_group.grad_arrays=\
-				[[grad.copyto(grad.context)/normsize for grad in grads] for grads in self.grad]
+                      [[grad.copyto(grad.context)/normsize if grad is not None else None for grad in grads] for grads in self.grad]
 
 #	print(self._curr_module.optimizer_initialized)
         self._curr_module.update()
@@ -269,5 +269,6 @@ class MutableModule(BaseModule):
     def save_checkpoint(self,prefix, epoch, save_optimizer_states=False):
         self._curr_module._sync_params_from_devices()
         self._curr_module.save_checkpoint(prefix, epoch, save_optimizer_states)
+
 
 
