@@ -217,12 +217,15 @@ class MutableModule(BaseModule):
 
         self._curr_module.forward(data_batch, is_train=is_train)
 
-    def __acc_grad(self,mod,grad):
-        if grad == None:
-            return [[grad.copyto(grad.context) if grad is not None else None for grad in grads] for grads in mod._exec_group.grad_arrays]
+    def __acc_grad(self,mod,in_grads):
+        if in_grads is None:
+#            print('grad is None')
+            
+            ret_grads= [[grad.copyto(grad.context) if grad is not None else None for grad in grads] for grads in mod._exec_group.grad_arrays]
         else:
-            return [[grad1.copyto(grad1.context) + grad0 if grad1 is not None else None  for grad1,grad0 in zip(grads1,grads0)]\
-                        for grads1,grads0 in zip(mod._exec_group.grad_arrays,grad)]
+            ret_grads=[[grad1.copyto(grad1.context) + grad0 if grad1 is not None else None  for grad1,grad0 in zip(grads1,grads0)]\
+                        for grads1,grads0 in zip(mod._exec_group.grad_arrays,in_grads)]
+        return ret_grads
 
     def acc_backward(self, out_grads=None):
         assert self.binded and self.params_initialized
@@ -234,11 +237,22 @@ class MutableModule(BaseModule):
 
     def acc_update(self,normsize=1):
         assert self.binded and self.params_initialized and self.optimizer_initialized
-        self._curr_module._exec_group.grad_arrays=\
-                      [[grad.copyto(grad.context)/normsize if grad is not None else None for grad in grads] for grads in self.grad]
+#        self._curr_module._exec_group.grad_arrays=None
+#        self._curr_module._exec_group.grad_arrays=\
+#                      [[grad.copyto(grad.context)*1 if grad is not None else None for grad in grads] for grads in self.grad]
 
-#	print(self._curr_module.optimizer_initialized)
+        for acc_grads, mod_grads in zip(self.grad,self._curr_module._exec_group.grad_arrays):
+            for acc_grad, mod_grad in zip(acc_grads, mod_grads):
+                if acc_grad is not None:
+                    mod_grad = acc_grad.copyto(mod_grad.context)/normsize
+                else:
+                    mod_grad = None
+#        try:
+#            del(self._curr_module._exec_group.execs[0].grad_arrays)
+#        except:
+#            None
         self._curr_module.update()
+        self.grad = None
 
 
     def backward(self, out_grads=None):
