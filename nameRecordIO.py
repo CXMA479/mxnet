@@ -6,7 +6,7 @@ encoding  image names is trival and always drives me crazy which also decays my 
 """
 import mxnet as mx
 import cPickle as cpk
-import os
+import os, logging
 class  nameRecordIO(object):
     """
     1. get your data directly by its name!
@@ -17,9 +17,10 @@ class  nameRecordIO(object):
     2. appending operation is supported!
         nameRecordIO(idx_path, uri, 'a' )
   """
-    def __init__(self, idx_path, uri, flag, key_type=int):
-        assert '.' in idx_path
-        self.file_path=idx_path.split('.')[0]
+    def __init__(self, name , flag, key_type=int):
+        idx_path = name+'.idx'
+        uri      = name+'.rec'
+        self.file_path= name
         self.cpk_path=self.file_path+'.cpk'
         if os.path.isfile(self.cpk_path):  # load it
             f=open(self.cpk_path,'r')
@@ -64,6 +65,9 @@ class  nameRecordIO(object):
             if flag == 'w':
                 self.nameDict = {}
                 self.count = 0
+        logging.info('There are %d record in the file[%s].'%\
+                    (len(self.nameDict),uri))
+        self.flag = flag
 
 
     def write_name(self, name, buf):
@@ -82,9 +86,9 @@ class  nameRecordIO(object):
     def close(self):
      # dunmp the dict
         import cPickle as cpk
-        f = open(self.cpk_path,'w')
-        cpk.dump(self.nameDict,f)
-        f.close()
+        if self.flag is not  'r': # overwrite only writing or appendding
+            with open(self.cpk_path,'w') as f:
+                cpk.dump(self.nameDict,f)
         self.rec.close()
         if os.path.isfile(self.idx_path+'.tmp'): # rename the new one
             os.rename(self.idx_path+'.tmp',self.idx_path)
@@ -95,7 +99,7 @@ class  nameRecordIO(object):
 
 
 if __name__  == '__main__':
-  rec=nameRecordIO('test.idx','test.rec','w')
+  rec=nameRecordIO('test','w')
   d1='chen, yos'
   d2='lisdg, 20xxxx71, xxx08xx09t'
   imgname1='img1'
@@ -104,13 +108,13 @@ if __name__  == '__main__':
   rec.write_name(imgname2,d2)
   rec.close()
   
-  rec=nameRecordIO('test.idx','test.rec','r')
+  rec=nameRecordIO('test','r')
   assert rec.read_name(imgname1)==d1
   assert rec.read_name(imgname2) == d2
   rec.close()
   
   
-  rec=nameRecordIO('test.idx','test.rec','a')
+  rec=nameRecordIO('test','a')
   d3='chen, '
   d4=', 20xsds20xxx9t'
   imgname3='img3'
@@ -119,7 +123,7 @@ if __name__  == '__main__':
   rec.write_name(imgname4,d4)
   rec.close()
   
-  rec=nameRecordIO('test.idx','test.rec','r')
+  rec=nameRecordIO('test','r')
   #print rec.nameDict
   assert rec.read_name(imgname1) == d1, rec.read_name(imgname1)
   
