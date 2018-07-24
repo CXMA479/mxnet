@@ -33,6 +33,20 @@ metric = mx.metric
 BatchEndParam = mx.model.BatchEndParam
 _as_list = mx.base._as_list
 
+
+def block_restore(net_prefix, epoch, ctx, data_names=['data',]):
+    """
+        this interface aims for gluon.nn.Sequential
+            as well as Module
+        return as a SymbolBlock
+    """
+    
+    return mx.gluon.SymbolBlock.imports(net_prefix+'-symbol.json',\
+            data_names, net_prefix+'-%04d.params'%epoch, ctx)
+
+
+
+
 def acc_grad_arrays(mod, arg_acc_grad_arrays=None):
     """
         if grads is None, return the copied one else, return accumulated one

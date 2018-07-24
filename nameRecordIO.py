@@ -6,7 +6,8 @@ encoding  image names is trival and always drives me crazy which also decays my 
 """
 import mxnet as mx
 import cPickle as cpk
-import os, logging
+import os, logging, time
+import numpy as np
 class  nameRecordIO(object):
     """
     1. get your data directly by its name!
@@ -68,6 +69,27 @@ class  nameRecordIO(object):
         logging.info('There are %d record in the file[%s].'%\
                     (len(self.nameDict),uri))
         self.flag = flag
+
+    def IObenchmark(self, decode_fn=None):
+        """
+            on random access
+        """
+        loop = 10
+        time_acc = 0.
+        print('Starting IObenchmark...')
+        name_list = self.nameDict.keys()
+        sample_num = len(name_list)
+        for i in xrange(loop):
+            print('Loop:\t%d/%d...'%(i,loop))
+            np.random.shuffle(name_list)
+            t1 = time.time()
+            for name in name_list:
+                decode_fn(self.read_name(name)) if decode_fn is not None \
+                    else self.read_name(name)
+            time_acc += time.time() - t1
+        self.sample_speed = loop*sample_num/time_acc
+        print('Benchmark:\tdecode:%s\t%dloop(s) cost %f sec\tSpeed: %f samples/sec'%('True'if decode_fn else 'False', loop, time_acc, self.sample_speed) )
+
 
 
     def write_name(self, name, buf):
