@@ -11,18 +11,20 @@ import numpy as np
 class  nameRecordIO(object):
     """
     1. get your data directly by its name!
-
-    rec.write_name(name,data)
-    data=rec.read_name(name)
+        rec.write_name(name,data)
+        data=rec.read_name(name)
 
     2. appending operation is supported!
         nameRecordIO(idx_path, uri, 'a' )
-  """
-    def __init__(self, name , flag, key_type=int):
+    """
+    def __init__(self, name , flag, key_type=int ):
         idx_path = name+'.idx'
         uri      = name+'.rec'
         self.file_path= name
         self.cpk_path=self.file_path+'.cpk'
+        self.data = None # for storing pre-loaded data if mm
+        self.flag = flag
+
         if os.path.isfile(self.cpk_path):  # load it
             f=open(self.cpk_path,'r')
             try:
@@ -69,6 +71,18 @@ class  nameRecordIO(object):
         logging.info('There are %d record in the file[%s].'%\
                     (len(self.nameDict),uri))
         self.flag = flag
+        if len(self.nameDict):
+            logging.info('samples of key: %s'%(', '.join(self.nameDict.keys()[:10]) ) )
+
+    def loadAllData(self):
+        """
+            load all data into memory
+        """
+        assert self.flag=='r',self.flag
+        logging.info('load all data into memory...')
+        data = {k:self.read_name(k) for k in self.nameDict}
+        self.data = data
+        logging.info('done.')
 
     def IObenchmark(self, decode_fn=None):
         """
@@ -102,8 +116,9 @@ class  nameRecordIO(object):
             self.count += 1
  
     def read_name(self,name):
-        assert name in self.nameDict,'%s does not exist in Dict!'%name
-        return self.rec.read_idx(self.nameDict[name])
+        assert name in self.nameDict,'%s does not exist in Dict!'%name#, self.nameDict[10])
+        return self.rec.read_idx(self.nameDict[name]) if \
+                self.data is None  else self.data[name]
  
     def close(self):
      # dunmp the dict
@@ -146,11 +161,10 @@ if __name__  == '__main__':
   rec.close()
   
   rec=nameRecordIO('test','r')
+  rec.loadAllData()
   #print rec.nameDict
   assert rec.read_name(imgname1) == d1, rec.read_name(imgname1)
-  
   assert rec.read_name(imgname2) == d2, rec.read_name(imgname2)
-  
   assert rec.read_name(imgname3) == d3, rec.read_name(imgname3)
   assert rec.read_name(imgname4) == d4
   
